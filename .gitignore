@@ -1,0 +1,8 @@
+# 调试临时产物
+.scratch/
+*.tmp
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]

@@ -1,0 +1,125 @@
+# ylxc/translator —— 启动器翻译搜索源
+#
+# 在启动器里输入 /tr 调用大模型翻译；若本机装了大模型控制中心（ylxc/llm-hub），
+# 可以把请求直接转交给它：路由、配额、用量统计统一在控制中心里看。
+#
+# 目录结构：
+#   plugin.toml           本清单
+#   translator.luau       搜索源入口：解析 → 查缓存 → 异步翻译 → 回填结果
+#   lib/config.luau       设置读取（逐键 getConfig，供清单静态核对）
+#   lib/langs.luau        语言别名表、语言识别、目标语言归一
+#   lib/hub.luau          大模型控制中心探测（目录 / 端口 / 密钥 / 模型目录）
+#   lib/engine.luau       三种后端的统一调用：hub / OpenAI 兼容 / Google
+#   translations/*.json   界面文案
+
+id = "ylxc/translator"
+name = "Translator"
+name_key = "plugin.name"
+version = "1.0.0"
+plugin_api = 26
+author = "ylxc"
+license = "MIT"
+icon = "language"
+description = "启动器翻译搜索源：调用大模型翻译，可走「大模型控制中心」。"
+description_key = "plugin.description"
+tags = ["language", "launcher", "ai"]
+dependencies = []
+
+# ── 启动器搜索源：/tr ────────────────────────────────────────────────────────
+[[launcher_provider]]
+id = "translate"
+entry = "translator.luau"
+prefix = "tr"
+glyph = "language"
+include_in_global_search = false
+debounce_ms = 300   # 停止输入后再发请求，避免每敲一个字都调用大模型
+
+# ── 插件级设置：设置 → 插件 → Translator ─────────────────────────────────────
+[[setting]]
+key = "target_lang"
+type = "string"
+label_key = "settings.target_lang.label"
+description_key = "settings.target_lang.description"
+default = "zh"
+
+[[setting]]
+key = "engine"
+type = "select"
+label_key = "settings.engine.label"
+description_key = "settings.engine.description"
+default = "auto"
+options = [
+  { value = "auto", label_key = "option.engine_auto" },
+  { value = "hub", label_key = "option.engine_hub" },
+  { value = "openai", label_key = "option.engine_openai" },
+  { value = "google", label_key = "option.engine_google" },
+]
+
+[[setting]]
+key = "hub_url"
+type = "string"
+label_key = "settings.hub_url.label"
+description_key = "settings.hub_url.description"
+visible_when = { key = "engine", values = ["auto", "hub"] }
+default = ""
+
+[[setting]]
+key = "hub_model"
+type = "string"
+label_key = "settings.hub_model.label"
+description_key = "settings.hub_model.description"
+visible_when = { key = "engine", values = ["auto", "hub"] }
+default = ""
+
+[[setting]]
+key = "hub_api_key"
+type = "string"
+label_key = "settings.hub_api_key.label"
+description_key = "settings.hub_api_key.description"
+visible_when = { key = "engine", values = ["auto", "hub"] }
+default = ""
+
+[[setting]]
+key = "api_base"
+type = "string"
+label_key = "settings.api_base.label"
+description_key = "settings.api_base.description"
+visible_when = { key = "engine", values = ["auto", "openai"] }
+default = "https://api.openai.com/v1"
+
+[[setting]]
+key = "api_key"
+type = "string"
+label_key = "settings.api_key.label"
+description_key = "settings.api_key.description"
+visible_when = { key = "engine", values = ["auto", "openai"] }
+default = ""
+
+[[setting]]
+key = "model"
+type = "string"
+label_key = "settings.model.label"
+description_key = "settings.model.description"
+visible_when = { key = "engine", values = ["auto", "openai"] }
+default = ""
+
+[[setting]]
+key = "prompt"
+type = "string"
+label_key = "settings.prompt.label"
+description_key = "settings.prompt.description"
+default = ""
+
+[[setting]]
+key = "auto_flip"
+type = "bool"
+label_key = "settings.auto_flip.label"
+description_key = "settings.auto_flip.description"
+default = true
+
+[[setting]]
+key = "show_engine"
+type = "bool"
+label_key = "settings.show_engine.label"
+description_key = "settings.show_engine.description"
+default = true
